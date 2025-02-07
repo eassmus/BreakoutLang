@@ -1,0 +1,9 @@
+[package]
+name = "breakout"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+phf = { version = "0.11.3", features = ["macros"] }
+regex = "1.11.1"
+regex-split = "0.1.0"
