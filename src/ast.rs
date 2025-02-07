@@ -18,6 +18,7 @@ enum Data {
 
 trait Eval {
     fn eval(&self) -> Data;
+    fn get_required_inputs(&self) -> Vec<Symbol>;
 }
 
 struct Definition {
@@ -54,13 +55,19 @@ impl TokenStream {
     fn is_empty(&self) -> bool {
         self.tokens.is_empty()
     }
-    fn get_symbol_id(&mut self, name: &str) -> usize {
+    fn get_new_symbol_id(&mut self, name: &str) -> usize {
         self.id_name_table.push(name.to_string());
         self.symbol_id += 1;
         self.symbol_id - 1
     }
+    fn get_symb_name(&self, id: usize) -> String {
+        self.id_name_table[id].clone()
+    }
+    fn get_symb_id(&self, name: &str) -> Option<usize> {
+        self.id_name_table.iter().position(|x| x == name)
+    }
 }
-
+/*
 fn func_inps_consume(
     token_stream: &mut TokenStream,
     ast: &mut AST,
@@ -92,7 +99,7 @@ fn func_inps_consume(
         }
     }
     for item in &inps {
-        let symb_id = token_stream.get_symbol_id(&item.name());
+        let symb_id = token_stream.get_new_symbol_id(&item.name());
         ast.funcs.last_mut().unwrap().intial_inps.push(symb_id);
     }
     Ok(inps)
@@ -103,12 +110,32 @@ fn func_stage_consume(
     ast: &mut AST,
     inps: &mut Vec<Symbol>,
 ) -> Result<bool, ParsingError> {
+    let mut new_inps = vec![];
+    while let Some(next_token) = token_stream.pop() {
+        if next_token == Token::Lang(PreToken::KW(Keyword::Bar)) {
+            let new_inp = func_prereq_consume(token_stream, ast, inps)?;
+            let symb_id = token_stream.get_new_symbol_id(&new_inp.name());
+            let def_symb = token_stream.pop();
+            if def_symb != Some(Token::Lang(PreToken::KW(Keyword::Define))) {
+                return Err(ParsingError {
+                    line: 0,
+                    message: "Unexpected token in func def, expected :=".to_string(),
+                });
+            }
+            let eval = func_eval_consume(token_stream, ast)?;
+            ast.funcs.last_mut().unwrap().stages.push(FuncStage {
+
+            })
+            new_inps.push(new_inp);
+        }
+    }
+    inps.push(new_inps);
     Ok(true)
 }
 
 fn func_consume(token_stream: &mut TokenStream, ast: &mut AST) -> Result<(), ParsingError> {
     if let Some(Token::Symb(symb)) = token_stream.pop() {
-        let symb_id = token_stream.get_symbol_id(&symb.name());
+        let symb_id = token_stream.get_new_symbol_id(&symb.name());
         let def_symb = token_stream.pop();
         if def_symb != Some(Token::Lang(PreToken::KW(Keyword::Define))) {
             return Err(ParsingError {
@@ -159,3 +186,4 @@ fn gen_ast(mut inp: Vec<Token>) -> Result<AST, ParsingError> {
     base_consumer(&mut stream, &mut ast)?;
     Ok(ast)
 }
+*/
