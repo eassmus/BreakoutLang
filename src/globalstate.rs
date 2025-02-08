@@ -2,7 +2,9 @@
 use crate::errors::ProgramError;
 use crate::expressions::Evaluation;
 use crate::parser::{Literal, Symbol};
+use std::cell::RefCell;
 use std::collections::HashMap as Map;
+use std::rc::Rc;
 
 struct SymbolTable {
     token_to_id: Map<Symbol, usize>,
@@ -44,28 +46,32 @@ impl SymbolTable {
 
 pub struct GlobalState {
     symbol_table: SymbolTable,
-    variables: Map<Symbol, Evaluation>,
+    variables: Rc<RefCell<Map<Symbol, Evaluation>>>,
+    main_evaluation: Option<Evaluation>,
 }
 
 impl GlobalState {
     pub fn new() -> Self {
         let symbol_table = SymbolTable::new();
-        let variables = Map::new();
+        let variables = Rc::new(RefCell::new(Map::new())); //Map::new();
         GlobalState {
             symbol_table,
             variables,
+            main_evaluation: None,
         }
     }
     pub fn add_variable(&mut self, name: Symbol, value: Evaluation) -> Result<(), ProgramError> {
         self.symbol_table.add(name.clone())?;
-        self.variables.insert(name, value);
+        if name.name() == "main" {
+            self.main_evaluation = Some(value);
+        } else {
+            self.variables.borrow_mut().insert(name, value);
+        }
         Ok(())
     }
-    pub fn eval_main(&mut self) -> Result<Literal, ProgramError> {
-        Ok(self
-            .variables
-            .get(&Symbol::new("main".to_string()))
-            .unwrap()
-            .evaluate())
+    pub fn eval_main(mut self) -> Result<Literal, ProgramError> {
+        let eval = self.main_evaluation.unwrap();
+        let literal = eval.evaluate(&mut self.variables);
+        Ok(literal)
     }
 }

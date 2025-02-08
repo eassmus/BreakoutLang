@@ -50,6 +50,7 @@ fn consume_evaluation(
             }
             Err("Invalid type".into())
         }
+        _ => todo!(),
     }
 }
 

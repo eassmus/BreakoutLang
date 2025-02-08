@@ -1,12 +1,15 @@
 use crate::globalstate::GlobalState;
 use crate::parser::Literal;
+use crate::parser::Symbol;
 use crate::parser::Token;
 use crate::primitives::OPERATOR_TYPE_TABLE;
 use crate::primitives::{Bool, Int, Str};
 use crate::scanner::Operator;
 use crate::scanner::PreToken;
 use crate::scanner::Type;
-use core::panic;
+use std::cell::RefCell;
+use std::collections::HashMap as Map;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum Evaluation {
@@ -16,6 +19,7 @@ pub enum Evaluation {
         arg1: Box<Evaluation>,
         arg2: Box<Evaluation>,
     },
+    Variable(Symbol),
 }
 impl Evaluation {
     pub fn from_tokens(tokens: &mut Vec<Token>, global_state: &mut GlobalState) -> Self {
@@ -33,13 +37,19 @@ impl Evaluation {
             Some(Token::Lang(PreToken::EOL)) => {
                 panic!()
             }
+            Some(Token::Symb(symbol)) => Evaluation::Variable(symbol),
             None => todo!(),
             _ => panic!("{:?}", tokens),
         }
     }
-    pub fn evaluate(&self) -> Literal {
+    pub fn evaluate(&self, variables: &mut Rc<RefCell<Map<Symbol, Evaluation>>>) -> Literal {
         match self {
             Evaluation::Literal(literal) => literal.clone(),
+            Evaluation::Variable(symbol) => variables
+                .borrow()
+                .get(symbol)
+                .unwrap()
+                .evaluate(&mut variables.clone()),
             Evaluation::PrimOp { op, arg1, arg2 } => {
                 let op_type = {
                     let mut op_type = None;
@@ -52,8 +62,8 @@ impl Evaluation {
                     op_type
                 }
                 .unwrap();
-                let eval1 = arg1.evaluate();
-                let eval2 = arg2.evaluate();
+                let eval1 = arg1.evaluate(variables);
+                let eval2 = arg2.evaluate(variables);
                 match op_type {
                     Type::Bool => {
                         if let (Literal::Bool(b1), Literal::Bool(b2)) = (eval1, eval2) {
