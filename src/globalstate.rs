@@ -2,6 +2,7 @@
 use crate::errors::ProgramError;
 use crate::expressions::Evaluation;
 use crate::parser::{Literal, Symbol};
+use crate::scanner::Type;
 use std::cell::RefCell;
 use std::collections::HashMap as Map;
 use std::rc::Rc;
@@ -68,6 +69,9 @@ impl GlobalState {
             self.variables.borrow_mut().insert(name, value);
         }
         Ok(())
+    }
+    pub fn get_type(&self, symbol: &Symbol) -> Type {
+        self.variables.borrow().get(symbol).unwrap().get_type()
     }
     pub fn eval_main(mut self) -> Result<Literal, ProgramError> {
         let eval = self.main_evaluation.unwrap();

@@ -47,6 +47,7 @@ pub enum Operator {
     Or,
     Nand,
     Concat,
+    Cond,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -80,6 +81,7 @@ const TOKEN_MAP: Map<&str, PreToken> = phf_map! {
 "||" => PreToken::OP(Operator::Or),
 "!" => PreToken::OP(Operator::Nand),
 "++" => PreToken::OP(Operator::Concat),
+"cond" => PreToken::OP(Operator::Cond),
 "|" => PreToken::KW(Keyword::Bar),
 "punch" => PreToken::KW(Keyword::Punch),
 "kick" => PreToken::KW(Keyword::Kick),

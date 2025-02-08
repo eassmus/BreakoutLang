@@ -1,7 +1,6 @@
 use crate::expressions::Evaluation;
 use crate::globalstate::GlobalState;
-use crate::parser::{Literal, Token};
-use crate::primitives::OPERATOR_TYPE_TABLE;
+use crate::parser::Token;
 use crate::scanner::{Keyword, PreToken, Type};
 use std::error::Error;
 
@@ -11,47 +10,15 @@ fn consume_evaluation(
     desired_type: Type,
 ) -> Result<Evaluation, Box<dyn Error>> {
     let eval = Evaluation::from_tokens(tokens, global_state);
-    match eval {
-        Evaluation::Literal(ref lit) => {
-            match lit {
-                Literal::Number(_) => {
-                    if Type::Int == desired_type {
-                        return Ok(eval);
-                    }
-                }
-                Literal::String(_) => {
-                    if Type::Str == desired_type {
-                        return Ok(eval);
-                    }
-                }
-                Literal::Bool(_) => {
-                    if Type::Bool == desired_type {
-                        return Ok(eval);
-                    }
-                }
-            }
-            return Err("Invalid type".into());
-        }
-        Evaluation::PrimOp { ref op, .. } => {
-            let op_type = {
-                let mut op_type = None;
-                for op_pair in OPERATOR_TYPE_TABLE.iter() {
-                    if op_pair.0 == *op {
-                        op_type = Some(op_pair.1);
-                        break;
-                    }
-                }
-                op_type
-            };
-            if let Some(t) = op_type {
-                if t == desired_type {
-                    return Ok(eval);
-                }
-            }
-            Err("Invalid type".into())
-        }
-        _ => todo!(),
+    if eval.get_type() != desired_type {
+        return Err(format!(
+            "Invalid token, wanted {:?} got {:?}",
+            desired_type,
+            eval.get_type()
+        )
+        .into());
     }
+    Ok(eval)
 }
 
 pub fn generate_ast(
