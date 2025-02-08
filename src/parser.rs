@@ -1,10 +1,18 @@
+#![allow(dead_code)]
+use crate::primitives::{Bool, Int, Str};
 use crate::scanner::*;
 use std::error::Error;
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Symbol {
     name: String,
+}
+
+impl std::fmt::Display for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 impl Symbol {
@@ -18,8 +26,19 @@ impl Symbol {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
-    Number(i64),
-    String(String),
+    Number(Int),
+    String(Str),
+    Bool(Bool),
+}
+
+impl std::fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Literal::Number(n) => write!(f, "{}", n),
+            Literal::String(s) => write!(f, "{}", s),
+            Literal::Bool(b) => write!(f, "{}", b),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,9 +63,17 @@ impl Error for ParsingError {}
 
 fn parse_literal(s: String) -> Result<Token, ParsingError> {
     if s.starts_with("\"") && s.ends_with("\"") {
-        Ok(Token::Lit(Literal::String(s[1..s.len() - 1].to_string())))
+        Ok(Token::Lit(Literal::String(Str::new(
+            s[1..s.len() - 1].to_string(),
+        ))))
     } else if s.parse::<i64>().is_ok() {
-        Ok(Token::Lit(Literal::Number(s.parse().unwrap())))
+        Ok(Token::Lit(Literal::Number(Int::new(s.parse().unwrap()))))
+    } else if s == "true" || s == "false" {
+        if s == "true" {
+            Ok(Token::Lit(Literal::Bool(Bool::new(true))))
+        } else {
+            Ok(Token::Lit(Literal::Bool(Bool::new(false))))
+        }
     } else {
         Err(ParsingError {
             line: 0,
@@ -71,6 +98,8 @@ fn parse_word(s: String) -> Result<Token, ParsingError> {
         || s.starts_with("7")
         || s.starts_with("8")
         || s.starts_with("9")
+        || s == "true"
+        || s == "false"
     {
         parse_literal(s)
     } else {
@@ -96,7 +125,6 @@ pub fn parse(path: &str) -> Result<Vec<Token>, Box<dyn Error>> {
     let mut out: Vec<Token> = Vec::new();
     while let Some(line) = scanner.get_next_line() {
         out.append(&mut parse_line(&line)?);
-        println!("{}", line);
     }
     Ok(out)
 }

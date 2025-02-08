@@ -9,12 +9,13 @@ pub enum Delimeter {
     LPar,
     RPar,
     Dot,
+    Colon,
+    Semicolon,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Keyword {
     Func,
-    Out,
     Kerchow,
     Bar,
     Define,
@@ -23,11 +24,29 @@ pub enum Keyword {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Type {
+    Int,
+    Str,
+    Bool,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Operator {
     Plus,
     Minus,
     Mult,
     Div,
+    Mod,
+    Eq,
+    Neq,
+    Geq,
+    Gt,
+    Leq,
+    Lt,
+    And,
+    Or,
+    Nand,
+    Concat,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -35,6 +54,7 @@ pub enum PreToken {
     DEL(Delimeter),
     KW(Keyword),
     OP(Operator),
+    TYPE(Type),
     EOL,
 }
 
@@ -43,17 +63,33 @@ const TOKEN_MAP: Map<&str, PreToken> = phf_map! {
 "(" => PreToken::DEL(Delimeter::LPar),
 ")" => PreToken::DEL(Delimeter::RPar),
 "." => PreToken::DEL(Delimeter::Dot),
+":" => PreToken::DEL(Delimeter::Colon),
+";" => PreToken::DEL(Delimeter::Semicolon),
 "+" => PreToken::OP(Operator::Plus),
 "-" => PreToken::OP(Operator::Minus),
 "*" => PreToken::OP(Operator::Mult),
 "/" => PreToken::OP(Operator::Div),
+"%" => PreToken::OP(Operator::Mod),
+"==" => PreToken::OP(Operator::Eq),
+"!=" => PreToken::OP(Operator::Neq),
+">=" => PreToken::OP(Operator::Geq),
+">" => PreToken::OP(Operator::Gt),
+"<=" => PreToken::OP(Operator::Leq),
+"<" => PreToken::OP(Operator::Lt),
+"&&" => PreToken::OP(Operator::And),
+"||" => PreToken::OP(Operator::Or),
+"!" => PreToken::OP(Operator::Nand),
+"++" => PreToken::OP(Operator::Concat),
 "|" => PreToken::KW(Keyword::Bar),
 "punch" => PreToken::KW(Keyword::Punch),
 "kick" => PreToken::KW(Keyword::Kick),
 "=>" => PreToken::KW(Keyword::Kerchow),
 ":=" => PreToken::KW(Keyword::Define),
 "func" => PreToken::KW(Keyword::Func),
-"out" => PreToken::KW(Keyword::Out)};
+"int" => PreToken::TYPE(Type::Int),
+"str" => PreToken::TYPE(Type::Str),
+"bool" => PreToken::TYPE(Type::Bool),
+};
 
 pub enum PreTokenized {
     T(PreToken),
@@ -69,7 +105,7 @@ fn string_to_tokenize(s: &str) -> PreTokenized {
 }
 
 pub fn tokenize_line(line: String) -> Vec<PreTokenized> {
-    let re = Regex::new("(\".*\"|\\(|\\|\\+|\\-|\\*|/|,|:=|=>)").unwrap();
+    let re = Regex::new("(\".*\"|\\(|\\)|\\|\\+|\\-|\\*|/|,|:=|=>|;)").unwrap();
     let mut split: Vec<PreTokenized> = re
         .split_inclusive(line.as_str())
         .flat_map(|s| re.split_inclusive_left(s))
@@ -102,16 +138,18 @@ impl Scanner {
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
         for line in contents.lines().rev() {
-            self.lines_stack.push(line.to_owned());
+            if line.starts_with("include") {
+                let re = Regex::new("(include )(.+)").unwrap();
+                let include_path = re.captures(line).unwrap().get(2).unwrap().as_str();
+                self.load_file(include_path)?;
+            } else {
+                self.lines_stack.push(line.to_owned());
+            }
         }
         Ok(())
     }
 
     pub fn get_next_line(&mut self) -> Option<String> {
         self.lines_stack.pop()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.lines_stack.is_empty()
     }
 }
