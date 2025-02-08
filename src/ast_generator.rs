@@ -1,3 +1,4 @@
+use crate::errors::*;
 use crate::expressions::Evaluation;
 use crate::globalstate::GlobalState;
 use crate::parser::Token;
@@ -11,12 +12,11 @@ fn consume_evaluation(
 ) -> Result<Evaluation, Box<dyn Error>> {
     let eval = Evaluation::from_tokens(tokens, global_state);
     if eval.get_type() != desired_type {
-        return Err(format!(
-            "Invalid token, wanted {:?} got {:?}",
-            desired_type,
-            eval.get_type()
-        )
-        .into());
+        return Err(Box::new(TypeError {
+            message: "Type mismatch".to_string(),
+            expected: desired_type,
+            found: eval.get_type(),
+        }));
     }
     Ok(eval)
 }
