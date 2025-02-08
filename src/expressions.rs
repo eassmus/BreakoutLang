@@ -4,6 +4,7 @@ use crate::parser::Symbol;
 use crate::parser::Token;
 use crate::primitives::OPERATOR_TYPE_TABLE;
 use crate::primitives::{Bool, Int, Str};
+use crate::scanner::Delimeter;
 use crate::scanner::Operator;
 use crate::scanner::PreToken;
 use crate::scanner::Type;
@@ -33,6 +34,13 @@ impl Evaluation {
                     arg1: Box::new(arg1),
                     arg2: Box::new(arg2),
                 }
+            }
+            Some(Token::Lang(PreToken::DEL(Delimeter::LPar))) => {
+                let eval = Evaluation::from_tokens(tokens, global_state);
+                if tokens.pop() != Some(Token::Lang(PreToken::DEL(Delimeter::RPar))) {
+                    panic!()
+                };
+                eval
             }
             Some(Token::Lang(PreToken::EOL)) => {
                 panic!()
