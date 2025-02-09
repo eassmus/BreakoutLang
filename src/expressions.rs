@@ -180,20 +180,29 @@ impl Evaluation {
                 }
             }
             Evaluation::FuncCall { name, args, .. } => {
-                println!("Evaluating {}", name);
                 let func = (*functions.borrow().get(name).unwrap()).clone();
                 match func {
                     Function::Simple {
                         args: ref needed_args,
                         ..
                     } => {
-                        let mut inps: Vec<(Symbol, Evaluation)> = Vec::new();
-                        for i in 0..args.len() {
-                            inps.push((needed_args[i].0.clone(), args[i].clone()));
+                        let mut give_vars: Rc<RefCell<Map<Symbol, Evaluation>>> =
+                            Rc::new(RefCell::new(Map::new()));
+                        let mut max_inst: Map<Symbol, usize> = Map::new();
+                        for (sym, eval) in variables.borrow().iter() {
+                            give_vars.borrow_mut().insert(sym.clone(), eval.clone());
+                            if sym.instance() >= *max_inst.get(sym).unwrap_or(&0) {
+                                max_inst.insert(sym.clone(), sym.instance());
+                            }
                         }
-                        println!("Inputs: {:#?}", inps);
-                        println!("Variables: {:#?}", variables);
-                        func.evaluate(inps, variables, functions)
+                        for (sym, to_eval) in needed_args.iter().zip(args.iter()) {
+                            let new_sym = Symbol::new_instance(sym.0.name(), sym.0.instance());
+                            let eval = to_eval.evaluate(&mut give_vars, functions);
+                            give_vars
+                                .borrow_mut()
+                                .insert(new_sym, Evaluation::Literal(eval));
+                        }
+                        func.evaluate(&mut give_vars, functions)
                     }
                 }
             }

@@ -74,29 +74,19 @@ impl Function {
     }
     pub fn evaluate(
         &self,
-        inputs: Vec<(Symbol, Evaluation)>,
         global_vars: &mut Rc<RefCell<Map<Symbol, Evaluation>>>,
         global_funcs: &mut Rc<RefCell<Map<Symbol, Function>>>,
     ) -> Literal {
         match self {
             Function::Simple {
-                name: _,
-                args,
+                name: n,
+                args: _,
                 body,
                 return_type: _,
-            } => {
-                let mut local_vars: Map<Symbol, Evaluation> = Map::new();
-                for (k, v) in global_vars.borrow().iter() {
-                    local_vars.insert(k.clone(), (*v).clone());
-                }
-                for i in 0..args.len() {
-                    local_vars.insert(args[i].0.clone(), inputs[i].1.clone());
-                }
-                body.as_ref().unwrap().evaluate(
-                    &mut Rc::new(RefCell::new(local_vars)),
-                    &mut global_funcs.clone(),
-                )
-            }
+            } => body
+                .as_ref()
+                .unwrap()
+                .evaluate(&mut global_vars.clone(), &mut global_funcs.clone()),
         }
     }
 }
