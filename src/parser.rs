@@ -6,21 +6,12 @@ use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Symbol {
-    name: String,
+    name: usize,
 }
 
 impl std::fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
-    }
-}
-
-impl Symbol {
-    pub fn new(name: String) -> Symbol {
-        Symbol { name }
-    }
-    pub fn name(&self) -> String {
-        self.name.clone()
     }
 }
 

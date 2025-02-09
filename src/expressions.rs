@@ -1,3 +1,4 @@
+use crate::functions::Function;
 use crate::globalstate::GlobalState;
 use crate::parser::Literal;
 use crate::parser::Symbol;
@@ -26,6 +27,42 @@ pub enum Evaluation {
         then: Box<Evaluation>,
         otherwise: Box<Evaluation>,
     },
+    FuncCall {
+        name: Symbol,
+        args: Vec<Evaluation>,
+        return_type: Type,
+    },
+}
+impl Clone for Evaluation {
+    fn clone(&self) -> Self {
+        match self {
+            Evaluation::Literal(literal) => Evaluation::Literal(literal.clone()),
+            Evaluation::PrimOp { op, arg1, arg2 } => Evaluation::PrimOp {
+                op: *op,
+                arg1: Box::new(*arg1.clone()),
+                arg2: Box::new(*arg2.clone()),
+            },
+            Evaluation::Variable(symbol, t) => Evaluation::Variable(symbol.clone(), *t),
+            Evaluation::Conditional {
+                cond,
+                then,
+                otherwise,
+            } => Evaluation::Conditional {
+                cond: Box::new(*cond.clone()),
+                then: Box::new(*then.clone()),
+                otherwise: Box::new(*otherwise.clone()),
+            },
+            Evaluation::FuncCall {
+                name,
+                args,
+                return_type,
+            } => Evaluation::FuncCall {
+                name: name.clone(),
+                args: args.clone(),
+                return_type: *return_type,
+            },
+        }
+    }
 }
 impl Evaluation {
     pub fn from_tokens(tokens: &mut Vec<Token>, global_state: &mut GlobalState) -> Self {
@@ -55,14 +92,32 @@ impl Evaluation {
             }
             Some(Token::Lang(PreToken::DEL(Delimeter::LPar))) => {
                 let eval = Evaluation::from_tokens(tokens, global_state);
-                if tokens.pop() != Some(Token::Lang(PreToken::DEL(Delimeter::RPar))) {
-                    panic!()
+                let next = tokens.pop().unwrap();
+                if next != Token::Lang(PreToken::DEL(Delimeter::RPar)) {
+                    panic!("{:?}", next);
                 };
                 eval
             }
             Some(Token::Symb(symbol)) => {
                 let t: Type = global_state.get_type(&symbol);
-                Evaluation::Variable(symbol, t)
+                if global_state.is_function(&symbol) {
+                    let needed_types = global_state.get_args(&symbol);
+                    let mut args: Vec<Evaluation> = Vec::new();
+                    for needed_type in needed_types {
+                        let eval = Evaluation::from_tokens(tokens, global_state);
+                        if eval.get_type() != needed_type {
+                            panic!()
+                        }
+                        args.push(eval);
+                    }
+                    Evaluation::FuncCall {
+                        name: symbol,
+                        args,
+                        return_type: t,
+                    }
+                } else {
+                    Evaluation::Variable(symbol, t)
+                }
             }
             Some(Token::Lang(PreToken::EOL)) => {
                 panic!()
@@ -88,32 +143,58 @@ impl Evaluation {
                 }
                 op_type.unwrap()
             }
+            Evaluation::FuncCall { return_type: t, .. } => *t,
             Evaluation::Variable(_, t) => *t,
             Evaluation::Conditional { then, .. } => then.get_type(),
         }
     }
-    pub fn evaluate(&self, variables: &mut Rc<RefCell<Map<Symbol, Evaluation>>>) -> Literal {
+    pub fn evaluate(
+        &self,
+        variables: &mut Rc<RefCell<Map<Symbol, Evaluation>>>,
+        functions: &mut Rc<RefCell<Map<Symbol, Function>>>,
+    ) -> Literal {
         match self {
             Evaluation::Literal(literal) => literal.clone(),
-            Evaluation::Variable(symbol, _) => variables
-                .borrow()
-                .get(symbol)
-                .unwrap()
-                .evaluate(&mut variables.clone()),
+            Evaluation::Variable(symbol, _) => {
+                let out = variables
+                    .borrow()
+                    .get(symbol)
+                    .unwrap()
+                    .evaluate(&mut variables.clone(), &mut functions.clone());
+                out
+            }
             Evaluation::Conditional {
                 cond,
                 then,
                 otherwise,
             } => {
-                let cond = cond.evaluate(variables);
+                let cond = cond.evaluate(variables, functions);
                 if let Literal::Bool(b) = cond {
                     if b.get() {
-                        then.evaluate(variables)
+                        then.evaluate(variables, functions)
                     } else {
-                        otherwise.evaluate(variables)
+                        otherwise.evaluate(variables, functions)
                     }
                 } else {
                     panic!()
+                }
+            }
+            Evaluation::FuncCall { name, args, .. } => {
+                println!("Evaluating {}", name);
+                let func = (*functions.borrow().get(name).unwrap()).clone();
+                match func {
+                    Function::Simple {
+                        args: ref needed_args,
+                        ..
+                    } => {
+                        let mut inps: Vec<(Symbol, Evaluation)> = Vec::new();
+                        for i in 0..args.len() {
+                            inps.push((needed_args[i].0.clone(), args[i].clone()));
+                        }
+                        println!("Inputs: {:#?}", inps);
+                        println!("Variables: {:#?}", variables);
+                        func.evaluate(inps, variables, functions)
+                    }
                 }
             }
             Evaluation::PrimOp { op, arg1, arg2 } => {
@@ -128,8 +209,8 @@ impl Evaluation {
                     op_type
                 }
                 .unwrap();
-                let eval1 = arg1.evaluate(variables);
-                let eval2 = arg2.evaluate(variables);
+                let eval1 = arg1.evaluate(variables, functions);
+                let eval2 = arg2.evaluate(variables, functions);
                 match op_type {
                     Type::Bool => {
                         if let (Literal::Bool(b1), Literal::Bool(b2)) = (&eval1, &eval2) {

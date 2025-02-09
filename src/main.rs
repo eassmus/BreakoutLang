@@ -2,6 +2,7 @@ use ast_generator::generate_ast;
 mod ast_generator;
 mod errors;
 mod expressions;
+mod functions;
 mod globalstate;
 mod parser;
 mod primitives;
