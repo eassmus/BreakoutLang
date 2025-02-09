@@ -3,6 +3,7 @@ mod ast_generator;
 mod errors;
 mod expressions;
 mod functions;
+mod garbage_collector;
 mod globalstate;
 mod parser;
 mod primitives;
