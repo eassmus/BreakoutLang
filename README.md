@@ -12,3 +12,11 @@ Planned features:
 - Somehow supporting direct access to the rust standard library
 - Trivial support for concurrency and multithreading (just a keyword to put a function in a thread/greenthread)
 - "Staged" functions??? - idrk what this entails yet
+
+Here is some example code:
+
+```
+int func fib := a : int => cond (< a 2) 1 (+ fib (- a 1) fib (- a 2))
+
+int main := fib 17 
+```
