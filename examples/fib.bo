@@ -1,0 +1,3 @@
+int func fib := a : int => cond (< a 2) 1 (+ fib (- a 1) fib (- a 2))
+
+int main := fib 17 

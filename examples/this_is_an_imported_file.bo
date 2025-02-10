@@ -1,0 +1,3 @@
+str hello := "Hello, world!"
+
+int my_fav_numer := 42
