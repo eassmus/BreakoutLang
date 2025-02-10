@@ -10,24 +10,32 @@ mod scanner;
 
 use std::time::SystemTime;
 
+use std::env;
 use std::thread;
 
 const STACK_SIZE: usize = 256 * 1024 * 1024;
 
 fn run() {
     let start = SystemTime::now();
-    let path: &str = "test.bo";
+
+    let args: Vec<String> = env::args().collect();
+    let path: &str = args[1].as_str();
     let out = parser::parse(path);
     let mut global_state = globalstate::GlobalState::new();
     let _ = generate_ast(&mut out.unwrap(), &mut global_state);
+
     let end = SystemTime::now();
     println!(
         "Parsed Source in: {}ms\n",
         end.duration_since(start).unwrap().as_millis()
     );
+
     let exec_start = SystemTime::now();
+
     let output = global_state.eval_main();
+
     let exec_end = SystemTime::now();
+
     println!("{}", output.unwrap());
     println!(
         "\nExecuted in: {}ms\n",

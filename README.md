@@ -20,3 +20,9 @@ int func fib := a : int => cond (< a 2) 1 (+ fib (- a 1) fib (- a 2))
 
 int main := fib 17 
 ```
+
+Installation:
+
+1. Install rust
+2. Clone the repo and run `cargo build --release`
+3. Run `./target/release/breakout <your code's file path>`
