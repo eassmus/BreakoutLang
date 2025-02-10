@@ -7,26 +7,13 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Symbol {
     name: String,
-    instance: usize,
 }
 impl Symbol {
     pub fn new(name: String) -> Symbol {
-        Symbol { name, instance: 0 }
-    }
-    pub fn new_instance(name: String, instance: usize) -> Symbol {
-        Symbol { name, instance }
+        Symbol { name }
     }
     pub fn name(&self) -> String {
         self.name.clone()
-    }
-    pub fn instance(&self) -> usize {
-        self.instance
-    }
-    pub fn duplicate(&self) -> Symbol {
-        Symbol {
-            name: self.name.clone(),
-            instance: self.instance + 1,
-        }
     }
 }
 
