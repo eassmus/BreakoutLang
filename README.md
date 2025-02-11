@@ -2,7 +2,7 @@ BreakoutLang is a "simmeringly slow"™ haskell-like (semi) lazily evaluated lan
 
 I am using it as an avenue to learn more about the rust type system, functional programming, concurrency, and multithreading.
 
-I also plan to put features in it that I think are interesting/funny/cool from other languages. Some examples/plans include:
+I also plan to put features in it that I think are interesting/funny/cool/silly from other languages. Some examples/plans include:
 
 - The Racket "cond" being the only branching logic (because Racket brings back good memories)
 - Filepaths as primitives from Nix (because this is a great idea even for a non DSL)

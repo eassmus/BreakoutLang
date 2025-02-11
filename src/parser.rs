@@ -29,6 +29,7 @@ pub enum Literal {
     Float(Float),
     String(Str),
     Bool(Bool),
+    Void,
 }
 impl Literal {
     pub fn get_type(&self) -> Type {
@@ -37,6 +38,7 @@ impl Literal {
             Literal::Float(_) => Type::Float,
             Literal::String(_) => Type::Str,
             Literal::Bool(_) => Type::Bool,
+            Literal::Void => Type::NoType,
         }
     }
 }
@@ -48,6 +50,7 @@ impl std::fmt::Display for Literal {
             Literal::Float(n) => write!(f, "{}", n),
             Literal::String(s) => write!(f, "{}", s),
             Literal::Bool(b) => write!(f, "{}", b),
+            Literal::Void => write!(f, "void"),
         }
     }
 }
@@ -112,7 +115,6 @@ fn parse_word(s: String, desired_type: Option<Type>) -> Result<Token, ParsingErr
         || s == "true"
         || s == "false"
     {
-        println!("{}", s);
         parse_literal(s, desired_type)
     } else {
         Ok(Token::Symb(Symbol::new(s)))

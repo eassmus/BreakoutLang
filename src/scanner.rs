@@ -29,6 +29,7 @@ pub enum Type {
     Float,
     Str,
     Bool,
+    NoType,
 }
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,6 +38,7 @@ impl std::fmt::Display for Type {
             Type::Float => write!(f, "float"),
             Type::Str => write!(f, "str"),
             Type::Bool => write!(f, "bool"),
+            Type::NoType => write!(f, "no_type"),
         }
     }
 }
@@ -56,9 +58,11 @@ pub enum Operator {
     Lt,
     And,
     Or,
+    Not,
     Nand,
     Concat,
     Cond,
+    Floor,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -90,9 +94,11 @@ const TOKEN_MAP: Map<&str, PreToken> = phf_map! {
 "<" => PreToken::OP(Operator::Lt),
 "&&" => PreToken::OP(Operator::And),
 "||" => PreToken::OP(Operator::Or),
-"!" => PreToken::OP(Operator::Nand),
+"!" => PreToken::OP(Operator::Not),
+"!&&" => PreToken::OP(Operator::Nand),
 "++" => PreToken::OP(Operator::Concat),
 "cond" => PreToken::OP(Operator::Cond),
+"floor" => PreToken::OP(Operator::Floor),
 "|" => PreToken::KW(Keyword::Bar),
 "punch" => PreToken::KW(Keyword::Punch),
 "kick" => PreToken::KW(Keyword::Kick),

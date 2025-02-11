@@ -18,7 +18,7 @@ pub enum Evaluation {
     PrimOp {
         op: Operator,
         arg1: Box<Evaluation>,
-        arg2: Box<Evaluation>,
+        arg2: Box<Option<Evaluation>>,
     },
     Variable(Symbol, Type),
     Conditional {
@@ -67,6 +67,22 @@ impl Evaluation {
     pub fn from_tokens(tokens: &mut Vec<Token>, global_state: &mut GlobalState) -> Self {
         match tokens.pop() {
             Some(Token::Lit(literal)) => Evaluation::Literal(literal),
+            Some(Token::Lang(PreToken::OP(Operator::Not))) => {
+                let arg = Evaluation::from_tokens(tokens, global_state);
+                Evaluation::PrimOp {
+                    op: Operator::Not,
+                    arg1: Box::new(arg),
+                    arg2: Box::new(None),
+                }
+            }
+            Some(Token::Lang(PreToken::OP(Operator::Floor))) => {
+                let arg = Evaluation::from_tokens(tokens, global_state);
+                Evaluation::PrimOp {
+                    op: Operator::Floor,
+                    arg1: Box::new(arg),
+                    arg2: Box::new(None),
+                }
+            }
             Some(Token::Lang(PreToken::OP(Operator::Cond))) => {
                 let cond = Evaluation::from_tokens(tokens, global_state);
                 let then = Evaluation::from_tokens(tokens, global_state);
@@ -86,7 +102,7 @@ impl Evaluation {
                 Evaluation::PrimOp {
                     op,
                     arg1: Box::new(arg1),
-                    arg2: Box::new(arg2),
+                    arg2: Box::new(Some(arg2)),
                 }
             }
             Some(Token::Lang(PreToken::DEL(Delimeter::LPar))) => {
@@ -132,10 +148,15 @@ impl Evaluation {
                 Literal::Float(_) => Type::Float,
                 Literal::String(_) => Type::Str,
                 Literal::Bool(_) => Type::Bool,
+                Literal::Void => Type::NoType,
             },
-            Evaluation::PrimOp { op, arg1, arg2 } => {
-                get_prim_op_type(*op, arg1.get_type(), arg2.get_type())
-            }
+            Evaluation::PrimOp { op, arg1, arg2 } => get_prim_op_type(*op, arg1.get_type(), {
+                if let Some(arg2) = arg2.as_ref() {
+                    arg2.get_type()
+                } else {
+                    Type::NoType
+                }
+            }),
             Evaluation::FuncCall { return_type: t, .. } => *t,
             Evaluation::Variable(_, t) => *t,
             Evaluation::Conditional { then, .. } => then.get_type(),

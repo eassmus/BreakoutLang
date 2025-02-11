@@ -95,6 +95,11 @@ impl Int {
     pub fn get(&self) -> i64 {
         self.value
     }
+    pub fn from_float(value: f64) -> Int {
+        Int {
+            value: value as i64,
+        }
+    }
     pub fn add(a: Int, b: Int) -> Int {
         Int {
             value: a.value + b.value,
@@ -178,6 +183,9 @@ impl Bool {
             value: a.value && b.value,
         }
     }
+    pub fn not(a: Bool) -> Bool {
+        Bool { value: !a.value }
+    }
     pub fn nand(a: Bool, b: Bool) -> Bool {
         Bool {
             value: !(a.value && b.value),
@@ -251,12 +259,18 @@ pub fn go_to_float(type1: Type, type2: Type) -> Type {
 pub fn exec_prim_op(
     op: Operator,
     arg1: Box<Evaluation>,
-    arg2: Box<Evaluation>,
+    arg2: Box<Option<Evaluation>>,
     variables: Rc<RefCell<HashMap<Symbol, Evaluation>>>,
     functions: Rc<RefCell<HashMap<Symbol, Function>>>,
 ) -> Literal {
     let mut eval1 = arg1.evaluate(&mut variables.clone(), &mut functions.clone());
-    let mut eval2 = arg2.evaluate(&mut variables.clone(), &mut functions.clone());
+    let mut eval2 = {
+        if let Some(a) = arg2.as_ref() {
+            a.evaluate(&mut variables.clone(), &mut functions.clone())
+        } else {
+            Literal::Void
+        }
+    }; //arg2.evaluate(&mut variables.clone(), &mut functions.clone());
     match (eval1.clone(), eval2.clone()) {
         (Literal::Integer(a), Literal::Float(_)) => {
             eval1 = Literal::Float(Float::from_int(a.get()));
@@ -309,6 +323,10 @@ pub fn exec_prim_op(
             (Literal::Bool(a), Literal::Bool(b)) => Literal::Bool(Bool::and(a, b)),
             _ => panic!(),
         },
+        Operator::Not => match eval1 {
+            Literal::Bool(a) => Literal::Bool(Bool::not(a)),
+            _ => panic!(),
+        },
         Operator::Nand => match (eval1, eval2) {
             (Literal::Bool(a), Literal::Bool(b)) => Literal::Bool(Bool::nand(a, b)),
             _ => panic!(),
@@ -341,6 +359,10 @@ pub fn exec_prim_op(
             (Literal::String(a), Literal::String(b)) => Literal::String(Str::concat(a, b)),
             _ => panic!(),
         },
+        Operator::Floor => match eval1 {
+            Literal::Float(a) => Literal::Integer(Int::from_float(a.get())),
+            _ => panic!(),
+        },
         Operator::Cond => panic!("uhhhhh"),
     }
 }
@@ -356,6 +378,7 @@ pub fn get_prim_op_type(op: Operator, type1: Type, type2: Type) -> Type {
         Operator::Or => Type::Bool,
         Operator::And => Type::Bool,
         Operator::Nand => Type::Bool,
+        Operator::Not => Type::Bool,
         Operator::Mod => Type::Int,
         Operator::Plus => go_to_float(type1, type2),
         Operator::Minus => go_to_float(type1, type2),
@@ -363,5 +386,6 @@ pub fn get_prim_op_type(op: Operator, type1: Type, type2: Type) -> Type {
         Operator::Div => go_to_float(type1, type2),
         Operator::Concat => Type::Str,
         Operator::Cond => panic!("ermmmmm how did we get here?"),
+        Operator::Floor => Type::Int,
     }
 }
