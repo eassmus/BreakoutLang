@@ -42,16 +42,6 @@ impl Function {
             } => *body = b,
         }
     }
-    pub fn get_name(&self) -> Symbol {
-        match self {
-            Function::Simple { name, .. } => name.clone(),
-        }
-    }
-    pub fn get_args(&self) -> Vec<(Symbol, Type)> {
-        match self {
-            Function::Simple { args, .. } => args.clone(),
-        }
-    }
     pub fn get_type(&self) -> Type {
         match self {
             Function::Simple {
@@ -78,12 +68,7 @@ impl Function {
         global_funcs: &mut Rc<RefCell<Map<Symbol, Function>>>,
     ) -> Literal {
         match self {
-            Function::Simple {
-                name: n,
-                args: _,
-                body,
-                return_type: _,
-            } => body
+            Function::Simple { body, .. } => body
                 .as_ref()
                 .unwrap()
                 .evaluate(&mut global_vars.clone(), &mut global_funcs.clone()),

@@ -3,8 +3,7 @@ use crate::globalstate::GlobalState;
 use crate::parser::Literal;
 use crate::parser::Symbol;
 use crate::parser::Token;
-use crate::primitives::OPERATOR_TYPE_TABLE;
-use crate::primitives::{Bool, Int, Str};
+use crate::primitives::{exec_prim_op, get_prim_op_type};
 use crate::scanner::Delimeter;
 use crate::scanner::Operator;
 use crate::scanner::PreToken;
@@ -129,19 +128,13 @@ impl Evaluation {
     pub fn get_type(&self) -> Type {
         match self {
             Evaluation::Literal(ref lit) => match lit {
-                Literal::Number(_) => Type::Int,
+                Literal::Integer(_) => Type::Int,
+                Literal::Float(_) => Type::Float,
                 Literal::String(_) => Type::Str,
                 Literal::Bool(_) => Type::Bool,
             },
-            Evaluation::PrimOp { ref op, .. } => {
-                let mut op_type = None;
-                for op_pair in OPERATOR_TYPE_TABLE.iter() {
-                    if op_pair.0 == *op {
-                        op_type = Some(op_pair.1);
-                        break;
-                    }
-                }
-                op_type.unwrap()
+            Evaluation::PrimOp { op, arg1, arg2 } => {
+                get_prim_op_type(*op, arg1.get_type(), arg2.get_type())
             }
             Evaluation::FuncCall { return_type: t, .. } => *t,
             Evaluation::Variable(_, t) => *t,
@@ -201,87 +194,13 @@ impl Evaluation {
                     }
                 }
             }
-            Evaluation::PrimOp { op, arg1, arg2 } => {
-                let op_type = {
-                    let mut op_type = None;
-                    for op_pair in OPERATOR_TYPE_TABLE.iter() {
-                        if op_pair.0 == *op {
-                            op_type = Some(op_pair.1);
-                            break;
-                        }
-                    }
-                    op_type
-                }
-                .unwrap();
-                let eval1 = arg1.evaluate(variables, functions);
-                let eval2 = arg2.evaluate(variables, functions);
-                match op_type {
-                    Type::Bool => {
-                        if let (Literal::Bool(b1), Literal::Bool(b2)) = (&eval1, &eval2) {
-                            return match op {
-                                Operator::And => Literal::Bool(Bool::and(*b1, *b2)),
-                                Operator::Or => Literal::Bool(Bool::or(*b1, *b2)),
-                                Operator::Nand => Literal::Bool(Bool::nand(*b1, *b2)),
-                                Operator::Eq => Literal::Bool(Bool::eq(*b1, *b2)),
-                                Operator::Neq => Literal::Bool(Bool::neq(*b1, *b2)),
-                                _ => panic!(),
-                            };
-                        } else if let (Literal::Number(i1), Literal::Number(i2)) = (&eval1, &eval2)
-                        {
-                            return match op {
-                                Operator::Gt => Literal::Bool(Int::gt(*i1, *i2)),
-                                Operator::Geq => Literal::Bool(Int::geq(*i1, *i2)),
-                                Operator::Lt => Literal::Bool(Int::lt(*i1, *i2)),
-                                Operator::Leq => Literal::Bool(Int::leq(*i1, *i2)),
-                                Operator::Eq => Literal::Bool(Int::eq(*i1, *i2)),
-                                Operator::Neq => Literal::Bool(Int::neq(*i1, *i2)),
-                                _ => panic!(),
-                            };
-                        } else if let (Literal::String(s1), Literal::String(s2)) = (eval1, eval2) {
-                            return match op {
-                                Operator::Eq => Literal::Bool(Str::eq(s1, s2)),
-                                Operator::Neq => Literal::Bool(Str::neq(s1, s2)),
-                                _ => panic!(),
-                            };
-                        }
-                        panic!()
-                    }
-                    Type::Int => {
-                        if let (Literal::Number(i1), Literal::Number(i2)) = (eval1, eval2) {
-                            match op {
-                                Operator::Plus => Literal::Number(Int::add(i1, i2)),
-                                Operator::Minus => Literal::Number(Int::sub(i1, i2)),
-                                Operator::Mult => Literal::Number(Int::mul(i1, i2)),
-                                Operator::Div => Literal::Number(Int::div(i1, i2)),
-                                Operator::Mod => Literal::Number(Int::rem(i1, i2)),
-                                Operator::Gt => Literal::Bool(Int::gt(i1, i2)),
-                                Operator::Geq => Literal::Bool(Int::geq(i1, i2)),
-                                Operator::Lt => Literal::Bool(Int::lt(i1, i2)),
-                                Operator::Leq => Literal::Bool(Int::leq(i1, i2)),
-                                Operator::Eq => Literal::Bool(Int::eq(i1, i2)),
-                                Operator::Neq => Literal::Bool(Int::neq(i1, i2)),
-                                _ => panic!(),
-                            }
-                        } else {
-                            panic!();
-                        }
-                    }
-                    Type::Str => {
-                        if let (Literal::String(s1), Literal::String(s2)) = (eval1, eval2) {
-                            match op {
-                                Operator::Concat => {
-                                    Literal::String(Str::concat(s1.clone(), s2.clone()))
-                                }
-                                Operator::Eq => Literal::Bool(Str::eq(s1, s2)),
-                                Operator::Neq => Literal::Bool(Str::neq(s1, s2)),
-                                _ => panic!(),
-                            }
-                        } else {
-                            panic!();
-                        }
-                    }
-                }
-            }
+            Evaluation::PrimOp { op, arg1, arg2 } => exec_prim_op(
+                *op,
+                arg1.clone(),
+                arg2.clone(),
+                variables.clone(),
+                functions.clone(),
+            ),
         }
     }
 }

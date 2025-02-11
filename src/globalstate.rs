@@ -127,7 +127,13 @@ impl GlobalState {
         panic!("Type not found, symbol: {}", symbol);
     }
     pub fn eval_main(mut self) -> Result<Literal, ProgramError> {
-        let eval = self.main_evaluation.unwrap();
+        let eval = match self.main_evaluation {
+            Some(e) => e,
+            None => {
+                println!("No main function found");
+                panic!()
+            }
+        };
         let literal = eval.evaluate(&mut self.variables, &mut self.func_table);
         Ok(literal)
     }
