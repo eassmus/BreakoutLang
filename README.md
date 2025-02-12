@@ -25,6 +25,19 @@ int func fib := a : int => cond (< a 2) 1 (+ fib (- a 1) fib (- a 2))
 int main := fib 17 
 ```
 
+Here is some example code using the builtin multithreading:
+
+```
+int func silly_fib := n : int 
+  | bool done := < n 2
+=>
+  | int a := cond done 0 silly_fib (- n 1) | kick
+  | int b := cond done 0 silly_fib (- n 2) | kick
+=> cond done 1 + a b
+
+int main := silly_fib 20
+```
+
 Installation:
 
 1. Install rust
