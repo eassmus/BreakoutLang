@@ -89,6 +89,9 @@ impl GlobalState {
             .unwrap()
             .set_body(Some(Box::new(body)));
     }
+    pub fn set_function_body_breakout(&mut self, name: Symbol, body: Function) {
+        self.func_table.borrow_mut().insert(name, body.clone());
+    }
     pub fn get_args(&self, symbol: &Symbol) -> Vec<Type> {
         self.func_table
             .borrow()

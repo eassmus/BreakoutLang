@@ -22,8 +22,11 @@ fn run() {
     let path: &str = args[1].as_str();
     let out = parser::parse(path);
     let mut global_state = globalstate::GlobalState::new();
-    let _ = generate_ast(&mut out.unwrap(), &mut global_state);
-
+    let ast = generate_ast(&mut out.unwrap(), &mut global_state);
+    if ast.is_err() {
+        println!("{}", ast.unwrap_err());
+        return;
+    }
     let end = SystemTime::now();
     println!(
         "Parsed Source in: {}ms\n",

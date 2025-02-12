@@ -1,0 +1,22 @@
+# this is a "breakout" staged function
+# each section is is before a =>, each section runs before the next
+# in each section variables are given values
+# the | kick syntax puts that calculation on another physical thread
+# the final => determines the functions output
+
+int a := 28
+
+int func slow_fib := a : int => cond < a 2 1 + slow_fib - a 1 slow_fib - a 2
+
+int func mt := b : int  
+| int c := slow_fib b | kick
+| int d := slow_fib b | kick
+| int d := slow_fib b | kick
+=>
+| int e := slow_fib b | kick
+| int f := slow_fib b | kick
+| int g := slow_fib b | kick
+| int h := slow_fib b | kick
+=> + c + d + e + f + g h
+
+int main := mt a

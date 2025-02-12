@@ -1,6 +1,6 @@
 use crate::errors::*;
 use crate::expressions::Evaluation;
-use crate::functions::Function;
+use crate::functions::{Function, FunctionStage, RunType};
 use crate::globalstate::GlobalState;
 use crate::parser::{Symbol, Token};
 use crate::scanner::{Delimeter, Keyword, PreToken, Type};
@@ -20,6 +20,57 @@ fn consume_evaluation(
         }));
     }
     Ok(eval)
+}
+
+fn consume_function_stage(
+    tokens: &mut Vec<Token>,
+    global_state: &mut GlobalState,
+) -> Result<FunctionStage, Box<dyn Error>> {
+    let mut curr_token = tokens.pop();
+    let mut assignments: Vec<(Symbol, Box<Evaluation>, RunType)> = Vec::new();
+    while curr_token != Some(Token::Lang(PreToken::KW(Keyword::Kerchow))) {
+        match curr_token {
+            Some(Token::Lang(PreToken::TYPE(t))) => {
+                let name = match tokens.pop() {
+                    Some(Token::Symb(name)) => name,
+                    x => panic!("{:?} is not a valid token, {:#?}", x, tokens),
+                };
+                let def_symbol = tokens.pop(); // def symbol
+                if def_symbol != Some(Token::Lang(PreToken::KW(Keyword::Define))) {
+                    return Err("Invalid token, wanted :=".into());
+                }
+                let body = consume_evaluation(tokens, global_state, t)?;
+                if body.get_type() != t {
+                    return Err(Box::new(TypeError {
+                        message: "Type mismatch".to_string(),
+                        expected: t,
+                        found: body.get_type(),
+                    }));
+                }
+                global_state.override_variables(name.clone(), t);
+                let run_type = match tokens.last().unwrap() {
+                    Token::Lang(PreToken::KW(Keyword::Bar)) => {
+                        tokens.pop();
+                        match tokens.pop() {
+                            Some(Token::Lang(PreToken::KW(Keyword::Kick))) => {
+                                tokens.pop();
+                                RunType::Thread
+                            }
+                            _ => panic!(),
+                        }
+                    }
+                    _ => RunType::Regular,
+                };
+                assignments.push((name, Box::new(body), run_type));
+            }
+            Some(Token::Lang(PreToken::EOL)) => {}
+            Some(Token::Lang(PreToken::KW(Keyword::Bar))) => {}
+            _ => panic!("{:?} is not a valid token, {:#?}", curr_token, tokens),
+        }
+        curr_token = tokens.pop();
+    }
+    tokens.push(curr_token.unwrap());
+    Ok(FunctionStage::new(assignments))
 }
 
 fn consume_function(
@@ -49,7 +100,7 @@ fn consume_function(
     }
     let func = Function::Simple {
         name: name.clone(),
-        args,
+        args: args.clone(),
         body: None,
         return_type: desired_type,
     };
@@ -66,10 +117,41 @@ fn consume_function(
             }
             global_state.set_function_body(name, body);
             global_state.clear_overrides();
-            Ok(())
+        }
+        Some(Token::Lang(PreToken::KW(Keyword::Bar))) => {
+            let mut stages: Vec<FunctionStage> = Vec::new();
+            loop {
+                let func_stage = consume_function_stage(tokens, global_state)?;
+                stages.push(func_stage);
+                let _kerchow = tokens.pop();
+                if tokens.last().unwrap() != &Token::Lang(PreToken::EOL) {
+                    // we are terminal
+                    let last_eval = consume_evaluation(tokens, global_state, desired_type)?;
+                    let t = last_eval.get_type();
+                    if t != desired_type {
+                        return Err(Box::new(TypeError {
+                            message: "Type mismatch".to_string(),
+                            expected: desired_type,
+                            found: last_eval.get_type(),
+                        }));
+                    };
+                    let func = Function::Breakout {
+                        name: name.clone(),
+                        args: args.clone(),
+                        stages: stages.to_vec(),
+                        final_eval: Box::new(last_eval),
+                        return_type: t,
+                    };
+                    global_state.set_function_body_breakout(name.clone(), func);
+                    break;
+                }
+            }
         }
         _ => todo!(),
-    }
+    };
+    global_state.clear_overrides();
+
+    Ok(())
 }
 
 pub fn generate_ast(
@@ -79,6 +161,11 @@ pub fn generate_ast(
     tokens.reverse();
     while !tokens.is_empty() {
         let mut line_start_token = tokens.pop();
+        if line_start_token == Some(Token::Lang(PreToken::COMMENT)) {
+            while line_start_token != Some(Token::Lang(PreToken::EOL)) {
+                line_start_token = tokens.pop();
+            }
+        }
         while line_start_token == Some(Token::Lang(PreToken::EOL)) {
             line_start_token = tokens.pop();
         }
@@ -99,7 +186,7 @@ pub fn generate_ast(
                         if def_symbol != Some(Token::Lang(PreToken::KW(Keyword::Define))) {
                             return Err("Invalid token, wanted :=".into());
                         }
-                        let _ = consume_function(func_name.clone(), tokens, global_state, t)?;
+                        consume_function(func_name.clone(), tokens, global_state, t)?;
                         // function adds to global state
                     }
                 } else {

@@ -135,7 +135,7 @@ impl Evaluation {
                 }
             }
             Some(Token::Lang(PreToken::EOL)) => {
-                panic!()
+                panic!("unexpected end of line, {:?}", tokens)
             }
             None => todo!(),
             _ => panic!("{:?}", tokens),
@@ -197,6 +197,23 @@ impl Evaluation {
                 let func = (*functions.borrow().get(name).unwrap()).clone();
                 match func {
                     Function::Simple {
+                        args: ref needed_args,
+                        ..
+                    } => {
+                        let mut give_vars: Rc<RefCell<Map<Symbol, Evaluation>>> =
+                            Rc::new(RefCell::new(Map::new()));
+                        for (sym, eval) in variables.borrow().iter() {
+                            give_vars.borrow_mut().insert(sym.clone(), eval.clone());
+                        }
+                        for (sym, to_eval) in needed_args.iter().zip(args.iter()) {
+                            let eval = to_eval.evaluate(&mut give_vars, functions);
+                            give_vars
+                                .borrow_mut()
+                                .insert(sym.0.clone(), Evaluation::Literal(eval));
+                        }
+                        func.evaluate(&mut give_vars, functions)
+                    }
+                    Function::Breakout {
                         args: ref needed_args,
                         ..
                     } => {

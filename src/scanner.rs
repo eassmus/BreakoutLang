@@ -72,6 +72,7 @@ pub enum PreToken {
     OP(Operator),
     TYPE(Type),
     EOL,
+    COMMENT,
 }
 
 const TOKEN_MAP: Map<&str, PreToken> = phf_map! {
@@ -96,7 +97,7 @@ const TOKEN_MAP: Map<&str, PreToken> = phf_map! {
 "||" => PreToken::OP(Operator::Or),
 "!" => PreToken::OP(Operator::Not),
 "!&&" => PreToken::OP(Operator::Nand),
-"++" => PreToken::OP(Operator::Concat),
+"concat" => PreToken::OP(Operator::Concat),
 "cond" => PreToken::OP(Operator::Cond),
 "floor" => PreToken::OP(Operator::Floor),
 "|" => PreToken::KW(Keyword::Bar),
@@ -109,6 +110,7 @@ const TOKEN_MAP: Map<&str, PreToken> = phf_map! {
 "float" => PreToken::TYPE(Type::Float),
 "str" => PreToken::TYPE(Type::Str),
 "bool" => PreToken::TYPE(Type::Bool),
+"#" => PreToken::COMMENT,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
