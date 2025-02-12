@@ -140,6 +140,9 @@ pub fn tokenize_line(line: String) -> Vec<PreTokenized> {
             }
         })
         .map(string_to_tokenize)
+        .filter(|t| t != &PreTokenized::T(PreToken::COMMENT))
+        .filter(|t| t != &PreTokenized::T(PreToken::DEL(Delimeter::Comma)))
+        .filter(|t| t != &PreTokenized::T(PreToken::DEL(Delimeter::Semicolon)))
         .collect();
     split.push(PreTokenized::T(PreToken::EOL));
     split
