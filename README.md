@@ -1,4 +1,4 @@
-BreakoutLang is a "simmeringly slow"™ haskell-like (semi) lazily evaluated language.
+BreakoutLang is a "simmeringly slow"™ haskell-like (semi) lazily evaluated staticly typed language.
 
 I am using it as an avenue to learn more about the rust type system, functional programming, concurrency, and multithreading.
 
