@@ -6,13 +6,14 @@ I also plan to put features in it that I think are interesting/funny/cool/silly 
 
 - The Racket "cond" being the only branching logic (because Racket brings back good memories)
 - Filepaths as primitives from Nix (because this is a great idea even for a non DSL)
-- Reverse Polish Notation for everything (including primitive operations) because why not and also ♥ Racket 
+- Reverse Polish Notation for everything (including primitive operations) because why not and also ♥ Racket
+- Staged Functions (see examples)
+- Trivial multithreading (see examples)
 
 Planned features:
 
 - Somehow supporting direct access to the rust standard library
 - Trivial support for concurrency and multithreading (just a keyword to put a function in its own thread/greenthread)
-- "Staged" functions??? - idrk what this entails yet
 - Hopefully above average error messages 
 - a REPL!?
 
