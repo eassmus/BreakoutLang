@@ -13,7 +13,6 @@ I also plan to put features in it that I think are interesting/funny/cool/silly 
 Planned features:
 
 - Somehow supporting direct access to the rust standard library
-- Trivial support for concurrency and multithreading (just a keyword to put a function in its own thread/greenthread)
 - Hopefully above average error messages 
 - a REPL!?
 
